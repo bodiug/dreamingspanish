@@ -1,0 +1,26 @@
+.gradle/
+/build/
+/app/build/
+/local.properties
+*.iml
+.idea/
+.DS_Store
+
+# Android/Gradle generated artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing and local secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Editor and OS files
+*.swp
+*.swo
+Thumbs.db
