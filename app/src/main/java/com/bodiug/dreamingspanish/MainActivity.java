@@ -185,7 +185,7 @@ public class MainActivity extends Activity {
             }
             if (tvFullscreenMode) {
                 if (event.getAction() == KeyEvent.ACTION_UP) {
-                    closeOpenPopupOrExitTvFullscreen();
+                    closeOpenPopupOrHideControlsOrExitTvFullscreen();
                 }
                 return true;
             }
@@ -969,12 +969,27 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void closeOpenPopupOrExitTvFullscreen() {
+    private void closeOpenPopupOrHideControlsOrExitTvFullscreen() {
         webView.evaluateJavascript(closeOpenPopupScript(), value -> {
             if (!"true".equals(value)) {
-                exitTvFullscreenMode();
+                webView.evaluateJavascript(hideVisiblePlayerControlsScript(), hidden -> {
+                    if (!"true".equals(hidden)) {
+                        exitTvFullscreenMode();
+                    }
+                });
             }
         });
+    }
+
+    private String hideVisiblePlayerControlsScript() {
+        return "(() => {"
+                + "const visible=(el)=>{if(!el)return false;const r=el.getBoundingClientRect();const s=getComputedStyle(el);return r.width>20&&r.height>20&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0';};"
+                + "const controls=[...document.querySelectorAll('.ds-tv-player-controls.__ds-tv-reveal,.ds-tv-player-controls.__ds-tv-selection-active,.ds-shaka-player.__ds-tv-reveal-player-controls')];"
+                + "if(!controls.some(visible))return false;"
+                + "document.querySelectorAll('.ds-tv-player-controls').forEach((el)=>el.classList.remove('__ds-tv-reveal','__ds-tv-selection-active'));"
+                + "document.querySelectorAll('.ds-shaka-player').forEach((el)=>el.classList.remove('__ds-tv-reveal-player-controls'));"
+                + "return true;"
+                + "})();";
     }
 
     private void focusElementUnderCursor() {
