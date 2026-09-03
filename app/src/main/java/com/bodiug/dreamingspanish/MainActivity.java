@@ -94,6 +94,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         autoplayEnabled = preferences.getBoolean(PREF_WEBSITE_AUTOPLAY, true);
         autoFullscreenEnabled = preferences.getBoolean(PREF_AUTO_FULLSCREEN, true);
