@@ -93,13 +93,21 @@
   window.__dsTvPlayerControlsObserver.observe(document.body, { childList: true, subtree: true });
 
   window.__dsTvRevealPlayerControls = (el) => {
-    const host = el && el.closest && el.closest('.embed-responsive');
-    const player = (el && el.closest && el.closest('.ds-shaka-player,.ds-youtube-player')) || (host && host.querySelector('.ds-shaka-player,.ds-youtube-player')) || document.querySelector('.ds-shaka-player,.ds-youtube-player');
-    if (!player) return;
-    player.classList.add('__ds-tv-reveal-player-controls');
-    (player.closest('.embed-responsive') || player).querySelector(':scope > .ds-tv-player-controls')?.classList.add('__ds-tv-reveal');
+    const host = (el && el.closest && el.closest('.embed-responsive')) || document.querySelector('.embed-responsive');
+    if (!host) return;
+    const player = (el && el.closest && el.closest('.ds-shaka-player,.ds-youtube-player')) || host.querySelector('.ds-shaka-player,.ds-youtube-player');
+    const controls = host.querySelector(':scope > .ds-tv-player-controls');
+    if (!controls) return;
+    player?.classList.add('__ds-tv-reveal-player-controls');
+    controls.classList.add('__ds-tv-reveal');
     clearTimeout(window.__dsTvRevealPlayerTimer);
-    window.__dsTvRevealPlayerTimer = setTimeout(() => { player.classList.remove('__ds-tv-reveal-player-controls'); (player.closest('.embed-responsive') || player).querySelector(':scope > .ds-tv-player-controls')?.classList.remove('__ds-tv-reveal'); }, 2200);
+    window.__dsTvRevealPlayerTimer = setTimeout(() => {
+      // Re-resolve the player from the stable host instead of reusing the captured
+      // reference: the site swaps in a real Shaka player after an initial youtube-type
+      // placeholder, which would otherwise leave this timer unable to find anything to clear.
+      host.querySelector('.ds-shaka-player,.ds-youtube-player')?.classList.remove('__ds-tv-reveal-player-controls');
+      controls.classList.remove('__ds-tv-reveal');
+    }, 2200);
   };
 
   window.__dsTvEnterFullscreen = () => {
