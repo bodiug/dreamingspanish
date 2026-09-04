@@ -10,6 +10,8 @@ https://app.dreaming.com/spanish/browse?sort=easy&hide-watched=true
 
 The app is built for TV remote navigation. It forces a desktop-style viewport, keeps the left menu visible, makes video cards easier to select, hides distracting watch-page sections, and adds TV-friendly controls for fullscreen playback, pause/play, quality selection, refresh, autoplay settings, and session reset.
 
+This app was built with AI assistance.
+
 ## Features
 
 - Android TV launcher support with app icon and banner.
@@ -120,4 +122,15 @@ or:
 
 ## Development Notes
 
-Most of the TV behavior lives in `MainActivity.java`. The app injects CSS and JavaScript into Dreaming Spanish pages after load to adapt layout, navigation, playback controls, fullscreen behavior, autoplay handling, and menu focus for Android TV.
+`MainActivity.java` is the orchestrator: Activity lifecycle, `WebView` setup, and remote key handling. The other TV behavior lives in dedicated classes:
+
+- `TvWebScripts.java`: loads and caches the injected JS, and builds the small calls into it.
+- `SettingsOverlay.java`: the in-app settings menu UI and its options.
+- `DesktopHtmlInterceptor.java`: rewrites the initial HTML response to force the desktop viewport.
+- `CursorView.java`: the on-screen pointer used in mouse mode.
+
+The CSS and JavaScript injected into Dreaming Spanish pages after load — to adapt layout, navigation, playback controls, fullscreen behavior, autoplay handling, and menu focus for Android TV — lives in `app/src/main/assets/js/`:
+
+- `ds-tv-core.js`: layout CSS, the shared player-controls overlay, and D-pad spatial navigation.
+- `ds-tv-focus.js`: focus styling and initial tab order.
+- `ds-tv-autoplay.js`: the website autoplay toggle.
