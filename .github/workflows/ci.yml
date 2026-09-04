@@ -17,10 +17,10 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - uses: android-actions/setup-android@v3
+
       - name: Install Android SDK platform
-        run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-37" "build-tools;37.0.0"
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
 
