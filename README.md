@@ -120,6 +120,21 @@ or:
 ./gradlew bundleRelease
 ```
 
+## Continuous Integration and Releases
+
+Every push and pull request runs `.github/workflows/ci.yml`, which builds the
+debug APK to catch build breakage early.
+
+Pushing a version tag (`vX.Y.Z`) runs `.github/workflows/release.yml`, which
+builds the debug APK, appends the commits since the previous tag to
+[`CHANGELOG.md`](CHANGELOG.md), and publishes a GitHub Release with that APK
+attached:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Development Notes
 
 `MainActivity.java` is the orchestrator: Activity lifecycle, `WebView` setup, and remote key handling. The other TV behavior lives in dedicated classes:
