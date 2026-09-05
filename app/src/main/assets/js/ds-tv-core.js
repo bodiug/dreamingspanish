@@ -38,6 +38,22 @@
     return true;
   };
 
+  if (!window.__dsTvYoutubeStateListenerInstalled) {
+    window.__dsTvYoutubeStateListenerInstalled = true;
+    window.addEventListener('message', (event) => {
+      if (event.origin !== 'https://www.youtube.com') return;
+      let data;
+      try { data = JSON.parse(event.data); } catch (e) { return; }
+      if (!data) return;
+      // The YouTube iframe API reports player state either as a bare number on
+      // "onStateChange" events, or nested in "info.playerState" on the
+      // periodic "infoDelivery" events it sends once embedded with enablejsapi=1.
+      const state = data.info && typeof data.info === 'object' ? data.info.playerState : data.info;
+      if (typeof state !== 'number') return;
+      window.__dsTvYoutubeEnded = state === 0;
+    });
+  }
+
   window.__dsTvVisible = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 20 && r.height > 20 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth && s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0'; };
 
   window.__dsTvShakaQuality = (value) => {

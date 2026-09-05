@@ -81,6 +81,14 @@ class TvWebScripts {
         return "window.__dsTvSetPlayback('" + action + "');";
     }
 
+    String videoEndedCall() {
+        return "(() => {"
+                + "const v=document.querySelector('video');"
+                + "if(v)return v.ended;"
+                + "return window.__dsTvYoutubeEnded===true;"
+                + "})();";
+    }
+
     String clearStorageCall() {
         return "window.__dsTvClearStorage();";
     }
