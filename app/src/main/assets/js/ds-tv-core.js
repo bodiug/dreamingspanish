@@ -116,8 +116,18 @@
     if (!controls) return;
     player?.classList.add('__ds-tv-reveal-player-controls');
     controls.classList.add('__ds-tv-reveal');
+    // Forcing Shaka's own controls bar visible via CSS doesn't tell Shaka's UI
+    // that the user is actually interacting, so its current-time display (which
+    // it only refreshes while it believes there's real mouse/touch activity)
+    // stays frozen at whatever it last showed. Nudge it with synthetic
+    // mousemove events for as long as we keep the controls forced open.
+    const nudge = () => player?.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, view: window }));
+    nudge();
+    clearInterval(window.__dsTvRevealPlayerNudgeInterval);
+    window.__dsTvRevealPlayerNudgeInterval = setInterval(nudge, 500);
     clearTimeout(window.__dsTvRevealPlayerTimer);
     window.__dsTvRevealPlayerTimer = setTimeout(() => {
+      clearInterval(window.__dsTvRevealPlayerNudgeInterval);
       // Re-resolve the player from the stable host instead of reusing the captured
       // reference: the site swaps in a real Shaka player after an initial youtube-type
       // placeholder, which would otherwise leave this timer unable to find anything to clear.
