@@ -1,5 +1,10 @@
 # Dreaming Spanish TV
 
+This is an unofficial, independent community project. It is not affiliated with,
+endorsed by, or sponsored by Dreaming Spanish or Dreaming. All third-party names
+and trademarks belong to their respective owners. Using this app requires your
+own access to the Dreaming Spanish service.
+
 Dreaming Spanish TV is a small Android TV app that opens the Dreaming Spanish web app in a fullscreen native `WebView`.
 
 It starts at:
@@ -11,6 +16,9 @@ https://app.dreaming.com/spanish/browse?sort=easy&hide-watched=true
 The app is built for TV remote navigation. It forces a desktop-style viewport, keeps the left menu visible, makes video cards easier to select, hides distracting watch-page sections, and adds TV-friendly controls for fullscreen playback, pause/play, quality selection, refresh, autoplay settings, and session reset.
 
 This app was built with AI assistance.
+
+The source code is available under the [MIT License](LICENSE). This license does
+not grant rights to Dreaming Spanish's content, branding, or service.
 
 ## Features
 
