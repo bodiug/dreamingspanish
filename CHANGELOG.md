@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.1
+
+- Prepare v1.0.1 and fix Android SDK setup (b3fc82b)
+- Add MIT license and clarify unofficial project status (c9e2d47)
+- Fix frozen time display when revealing player controls remotely (6828af5)
+- Exit TV fullscreen automatically when the video ends (890f1c7)
+- Update changelog for v1.0.0 (042dbdf)
+
 ## v1.0.0
 
 - Stop hardcoding a machine-specific org.gradle.java.home (2952189)
