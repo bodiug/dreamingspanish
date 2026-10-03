@@ -356,6 +356,7 @@ public class MainActivity extends Activity {
 
     private void configureWebView() {
         WebSettings settings = webView.getSettings();
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);

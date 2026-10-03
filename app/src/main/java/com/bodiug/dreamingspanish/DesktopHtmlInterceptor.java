@@ -28,6 +28,8 @@ final class DesktopHtmlInterceptor {
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setInstanceFollowRedirects(true);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Cache-Control", "no-cache");
             connection.setConnectTimeout(8000);
             connection.setReadTimeout(12000);
             connection.setRequestProperty("User-Agent", DESKTOP_USER_AGENT);

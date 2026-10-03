@@ -25,6 +25,7 @@ not grant rights to Dreaming Spanish's content, branding, or service.
 - Android TV launcher support with app icon and banner.
 - Fullscreen WebView for the Dreaming Spanish website.
 - Persistent Dreaming Spanish login through WebView cookies/storage.
+- Network loading without the WebView HTTP cache; login and settings remain stored.
 - Desktop viewport on TV to avoid the mobile layout.
 - Remote-friendly selection navigation for video cards, toolbar filters, menus, and watch-page controls.
 - Optional mouse-pointer navigation mode.
