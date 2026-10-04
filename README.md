@@ -26,6 +26,7 @@ not grant rights to Dreaming Spanish's content, branding, or service.
 - Fullscreen WebView for the Dreaming Spanish website.
 - Persistent Dreaming Spanish login through WebView cookies/storage.
 - Network loading without the WebView HTTP cache; login and settings remain stored.
+- Persisted website video queries are cleared before startup so the library loads fresh data instead of showing an old list first. Other stored data, including pending watch updates, is preserved.
 - Desktop viewport on TV to avoid the mobile layout.
 - Remote-friendly selection navigation for video cards, toolbar filters, menus, and watch-page controls.
 - Optional mouse-pointer navigation mode.

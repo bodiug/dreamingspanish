@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 final class DesktopHtmlInterceptor {
     static final String DESKTOP_USER_AGENT =
@@ -67,12 +69,42 @@ final class DesktopHtmlInterceptor {
     }
 
     private static String patchInitialHtml(String html) {
+        html = patchWebsiteBootstrap(html);
         String viewport = "<meta name=\"viewport\" content=\"width=" + DESKTOP_VIEWPORT_WIDTH
                 + ", initial-scale=1, maximum-scale=1, user-scalable=no\">";
         if (html.contains("name=\"viewport\"")) {
             return html.replaceFirst("<meta\\s+name=\"viewport\"[^>]*>", viewport);
         }
         return html.replaceFirst("<head>", "<head>" + viewport);
+    }
+
+    private static String patchWebsiteBootstrap(String html) {
+        // Clear only persisted video queries before React hydrates its offline cache.
+        Pattern module = Pattern.compile("<script\\b(?=[^>]*type=\"module\")[^>]*src=\"(/assets/[A-Za-z0-9_.-]+\\.js)\"[^>]*>\\s*</script>");
+        Matcher match = module.matcher(html);
+        if (!match.find()) {
+            return html;
+        }
+        String bootstrap = "<script type=\"module\">"
+                + "await new Promise(resolve=>{"
+                + "try{const request=indexedDB.open('react_query_offline_db');"
+                + "request.onupgradeneeded=()=>{request.transaction.abort();resolve();};"
+                + "request.onerror=()=>resolve();"
+                + "request.onblocked=()=>resolve();"
+                + "request.onsuccess=()=>{const db=request.result;"
+                + "if(!db.objectStoreNames.contains('queries')){db.close();resolve();return;}"
+                + "try{const tx=db.transaction('queries','readwrite');"
+                + "tx.oncomplete=tx.onerror=tx.onabort=()=>{db.close();resolve();};"
+                + "const cursor=tx.objectStore('queries').openCursor();"
+                + "cursor.onsuccess=()=>{const row=cursor.result;if(!row)return;"
+                + "const value=row.value;if(Array.isArray(value.state?.queries)){"
+                + "value.state.queries=value.state.queries.filter(query=>{"
+                + "const key=Array.isArray(query.queryKey)?query.queryKey[0]:query.queryKey;"
+                + "return key!=='videosState'&&key!=='videoState';});row.update(value);}"
+                + "row.continue();};}catch(e){db.close();resolve();}};"
+                + "}catch(e){resolve();}});"
+                + "await import('" + match.group(1) + "');</script>";
+        return match.replaceFirst(Matcher.quoteReplacement(bootstrap));
     }
 
     private static Map<String, String> responseHeaders(HttpURLConnection connection) {
