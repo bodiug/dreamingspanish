@@ -157,5 +157,8 @@ git push origin v1.0.0
 The CSS and JavaScript injected into Dreaming Spanish pages after load — to adapt layout, navigation, playback controls, fullscreen behavior, autoplay handling, and menu focus for Android TV — lives in `app/src/main/assets/js/`:
 
 - `ds-tv-core.js`: layout CSS, the shared player-controls overlay, and D-pad spatial navigation.
+- `ds-tv-playback-state.js`: tracks playback per page and player so only a video that has played can trigger automatic fullscreen exit.
 - `ds-tv-focus.js`: focus styling and initial tab order.
 - `ds-tv-autoplay.js`: the website autoplay toggle.
+
+Run the playback-state regression tests with `node --test tools/playback-state.test.mjs`.

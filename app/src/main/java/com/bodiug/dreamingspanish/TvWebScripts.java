@@ -24,7 +24,7 @@ class TvWebScripts {
 
     String coreScript() {
         if (coreScript == null) {
-            coreScript = readAsset(CORE_ASSET);
+            coreScript = readAsset("js/ds-tv-playback-state.js") + "\n" + readAsset(CORE_ASSET);
         }
         return coreScript;
     }
@@ -82,11 +82,7 @@ class TvWebScripts {
     }
 
     String videoEndedCall() {
-        return "(() => {"
-                + "const v=document.querySelector('video');"
-                + "if(v)return v.ended;"
-                + "return window.__dsTvYoutubeEnded===true;"
-                + "})();";
+        return "window.__dsTvHasVideoEnded();";
     }
 
     String clearStorageCall() {
