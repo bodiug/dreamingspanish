@@ -434,7 +434,8 @@ public class MainActivity extends Activity {
                         && "GET".equalsIgnoreCase(request.getMethod())
                         && request.getUrl() != null
                         && "app.dreaming.com".equals(request.getUrl().getHost())) {
-                    WebResourceResponse response = DesktopHtmlInterceptor.loadDesktopHtml(request.getUrl().toString());
+                    WebResourceResponse response = DesktopHtmlInterceptor.loadDesktopHtml(
+                            request.getUrl().toString(), preferences.getBoolean(PREF_WEBSITE_AUTOPLAY, true));
                     if (response != null) {
                         return response;
                     }

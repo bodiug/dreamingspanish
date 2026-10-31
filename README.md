@@ -58,6 +58,7 @@ Available settings:
 
 - `Navigation`: switch between selection mode and mouse-pointer mode.
 - `Website autoplay`: enable or disable Dreaming Spanish autoplay for the next video.
+- The autoplay choice is saved using the website's own setting before startup and synchronized with its switch when a watch page opens.
 - `Auto fullscreen`: enable or disable automatic TV fullscreen after selecting a video.
 - `Refresh page`: reload the current Dreaming Spanish page.
 - `Reset session`: clear WebView cookies, cache, local storage, session storage, history, and reload the start page.
