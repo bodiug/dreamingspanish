@@ -25,6 +25,7 @@ function fixture() {
     set iframe(value) { iframe = value; },
     set video(value) { video = value; },
     ended: () => context.window.__dsTvHasVideoEnded(),
+    ready: () => context.window.__dsTvIsPlayerReady(),
     playing: (target) => handlers.playing({ target }),
     reinject: () => vm.runInContext(script, context),
     message(info, { source = iframe?.contentWindow, event = 'onStateChange', origin = 'https://www.youtube.com' } = {}) {
@@ -115,4 +116,26 @@ test('leaving watch clears playback and reinjection preserves the active tracker
   assert.equal(f.ended(), false);
   f.iframe = null;
   assert.equal(f.ended(), false);
+});
+
+test('automatic fullscreen waits for the current player rather than a placeholder', () => {
+  const f = fixture();
+  assert.equal(f.ready(), false);
+  f.message(1);
+  assert.equal(f.ready(), true);
+  f.location.search = '?id=next';
+  assert.equal(f.ready(), false);
+  f.message(1, { source: {} });
+  assert.equal(f.ready(), false);
+  f.message(1);
+  assert.equal(f.ready(), true);
+  f.message(0);
+  assert.equal(f.ready(), false);
+  const video = { currentSrc: 'first.m3u8', readyState: 0, ended: false };
+  f.video = video;
+  assert.equal(f.ready(), false);
+  video.readyState = 2;
+  assert.equal(f.ready(), true);
+  video.ended = true;
+  assert.equal(f.ready(), false);
 });

@@ -35,6 +35,12 @@
     current.ended = state === 0 && current.started;
   });
 
+  window.__dsTvIsPlayerReady = () => {
+    const current = currentPlayback();
+    if (!current.player) return false;
+    return current.video ? current.video.readyState >= 2 && !current.video.ended : current.started && !current.ended;
+  };
+
   window.__dsTvHasVideoEnded = () => {
     const current = currentPlayback();
     if (!current.player) return false;

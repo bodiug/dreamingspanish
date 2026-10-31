@@ -25,7 +25,7 @@ final class AutoFullscreenRequest {
     }
 
     boolean nextAttempt() {
-        return isPending() && attempts++ < 10;
+        return isPending() && attempts++ < 50;
     }
 
     int generation() {

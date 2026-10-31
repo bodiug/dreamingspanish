@@ -77,7 +77,8 @@ class TvWebScripts {
     }
 
     String enterTvFullscreenCall(String targetUrl) {
-        return "window.__dsTvEnterTvFullscreen(" + JSONObject.quote(targetUrl) + ");";
+        return "!!(window.__dsTvIsPlayerReady && window.__dsTvIsPlayerReady()"
+                + " && window.__dsTvEnterTvFullscreen(" + JSONObject.quote(targetUrl) + "));";
     }
 
     String exitTvFullscreenCall() {

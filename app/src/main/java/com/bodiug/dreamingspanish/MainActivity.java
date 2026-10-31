@@ -470,7 +470,7 @@ public class MainActivity extends Activity {
                         view.setVisibility(View.VISIBLE);
                     }
                     if (autoFullscreenRequest.isPending() && url != null && url.contains("/watch")) {
-                        scheduleAutoFullscreenAttempt(700);
+                        scheduleAutoFullscreenAttempt(0);
                     }
                 });
             }
@@ -577,7 +577,7 @@ public class MainActivity extends Activity {
         if (autoFullscreenEnabled && targetUrl != null) {
             cancelAutoFullscreen();
             autoFullscreenRequest.start(targetUrl);
-            scheduleAutoFullscreenAttempt(1200);
+            scheduleAutoFullscreenAttempt(0);
         }
         postPageAction(this::selectOpenPopupIfPresent, 180);
     }
@@ -641,7 +641,7 @@ public class MainActivity extends Activity {
                 tvFullscreenMode = true;
                 scheduleVideoEndedCheck();
             } else {
-                scheduleAutoFullscreenAttempt(700);
+                scheduleAutoFullscreenAttempt(150);
             }
         });
     }
@@ -656,6 +656,7 @@ public class MainActivity extends Activity {
         currentPage = url;
         autoFullscreenRequest.onNavigation(url);
         if (!autoFullscreenRequest.isPending()) handler.removeCallbacks(autoFullscreenRunnable);
+        else scheduleAutoFullscreenAttempt(0);
         if (tvFullscreenMode) scheduleVideoEndedCheck();
     }
 

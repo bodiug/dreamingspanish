@@ -163,5 +163,8 @@ The CSS and JavaScript injected into Dreaming Spanish pages after load — to ad
 - `ds-tv-playback-state.js`: tracks playback per page and player so only a video that has played can trigger automatic fullscreen exit.
 - `ds-tv-focus.js`: focus styling and initial tab order.
 - `ds-tv-autoplay.js`: the website autoplay toggle.
+- `ds-tv-network.js`: keeps website data fresh while allowing static asset caching.
+
+Navigation reuses layout measurements only within a single remote-key action. Player controls update in batches when relevant elements change. Autoplay reuses the active switch, and automatic fullscreen checks player readiness instead of waiting a fixed startup delay.
 
 Run all behavior regression tests with `node --test tools/*.test.mjs` using Node.js 22 and a JDK on `PATH` or configured through `JAVA_HOME`. The suite covers playback state, player controls, and fullscreen request cancellation. Run Android Lint with `./gradlew lintDebug`.
