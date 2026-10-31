@@ -132,8 +132,8 @@ or:
 
 ## Continuous Integration and Releases
 
-Every push and pull request runs `.github/workflows/ci.yml`, which builds the
-debug APK to catch build breakage early.
+Every push and pull request runs `.github/workflows/ci.yml`, which runs the
+behavior regression tests, builds the debug APK, and runs Android Lint.
 
 Pushing a version tag (`vX.Y.Z`) runs `.github/workflows/release.yml`, which
 builds the debug APK, appends the commits since the previous tag to
@@ -152,6 +152,7 @@ git push origin v1.0.0
 - `TvWebScripts.java`: loads and caches the injected JS, and builds the small calls into it.
 - `SettingsOverlay.java`: the in-app settings menu UI and its options.
 - `DesktopHtmlInterceptor.java`: rewrites the initial HTML response to force the desktop viewport.
+- `AutoFullscreenRequest.java`: scopes automatic fullscreen retries to the selected video and invalidates cancelled requests.
 - `CursorView.java`: the on-screen pointer used in mouse mode.
 
 The CSS and JavaScript injected into Dreaming Spanish pages after load — to adapt layout, navigation, playback controls, fullscreen behavior, autoplay handling, and menu focus for Android TV — lives in `app/src/main/assets/js/`:
@@ -161,4 +162,4 @@ The CSS and JavaScript injected into Dreaming Spanish pages after load — to ad
 - `ds-tv-focus.js`: focus styling and initial tab order.
 - `ds-tv-autoplay.js`: the website autoplay toggle.
 
-Run the playback-state regression tests with `node --test tools/playback-state.test.mjs`.
+Run all behavior regression tests with `node --test tools/*.test.mjs` using Node.js 22 and a JDK on `PATH` or configured through `JAVA_HOME`. The suite covers playback state, player controls, and fullscreen request cancellation. Run Android Lint with `./gradlew lintDebug`.

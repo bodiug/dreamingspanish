@@ -17,6 +17,13 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run behavior regression tests
+        run: node --test tools/*.test.mjs
+
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
@@ -26,5 +33,5 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
+      - name: Build debug APK and run Android Lint
+        run: ./gradlew assembleDebug lintDebug
