@@ -77,6 +77,9 @@ public class MainActivity extends Activity {
         @Override
         public void onAutoFullscreenChanged(boolean enabled) {
             autoFullscreenEnabled = enabled;
+            if (!enabled) {
+                pendingAutoFullscreen = false;
+            }
             preferences.edit().putBoolean(PREF_AUTO_FULLSCREEN, enabled).apply();
         }
 
@@ -498,7 +501,7 @@ public class MainActivity extends Activity {
                     enterTvFullscreenMode();
                 }
             }
-            if (value != null && value.contains("VIDEO_CARD")) {
+            if (autoFullscreenEnabled && value != null && value.contains("VIDEO_CARD")) {
                 pendingAutoFullscreen = true;
                 autoFullscreenAttempts = 0;
                 scheduleAutoFullscreenAttempt(1200);
@@ -547,7 +550,7 @@ public class MainActivity extends Activity {
     }
 
     private void tryAutoFullscreen() {
-        if (!pendingAutoFullscreen || fullScreenView != null || webView == null) {
+        if (!autoFullscreenEnabled || !pendingAutoFullscreen || fullScreenView != null || webView == null) {
             return;
         }
         autoFullscreenAttempts++;
