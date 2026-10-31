@@ -50,3 +50,29 @@ test('both navigation modes return the native fullscreen marker', () => {
   assert.match(f.window.__dsTvSelectedElementAction('click'), /^FULLSCREEN\|/);
   assert.deepEqual(f.calls, []);
 });
+
+test('idle timeout hides controls even while a player button remains selected', () => {
+  const classes = new Set(['__ds-tv-selection-active']);
+  const controls = {
+    classList: {
+      add: (name) => classes.add(name),
+      remove: (...names) => names.forEach((name) => classes.delete(name)),
+    },
+  };
+  const player = { classList: { add() {}, remove() {} }, dispatchEvent() {} };
+  const host = { querySelector: (selector) => selector.includes('ds-tv-player-controls') ? controls : player };
+  let timeout;
+  const context = vm.createContext({
+    window: {},
+    document: { querySelector: () => host },
+    MouseEvent: class {},
+    setTimeout: (callback) => { timeout = callback; }, clearTimeout() {},
+    setInterval() {}, clearInterval() {},
+  });
+  vm.runInContext(section('  window.__dsTvRevealPlayerControls =', '  window.__dsTvEnterFullscreen ='), context);
+  context.window.__dsTvRevealPlayerControls(null);
+  assert(classes.has('__ds-tv-reveal'));
+  timeout();
+  assert.equal(classes.has('__ds-tv-reveal'), false);
+  assert.equal(classes.has('__ds-tv-selection-active'), false);
+});

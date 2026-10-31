@@ -116,7 +116,7 @@
       // reference: the site swaps in a real Shaka player after an initial youtube-type
       // placeholder, which would otherwise leave this timer unable to find anything to clear.
       host.querySelector('.ds-shaka-player,.ds-youtube-player')?.classList.remove('__ds-tv-reveal-player-controls');
-      controls.classList.remove('__ds-tv-reveal');
+      controls.classList.remove('__ds-tv-reveal', '__ds-tv-selection-active');
     }, 2200);
   };
 
