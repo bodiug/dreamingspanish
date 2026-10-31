@@ -36,7 +36,7 @@ class SettingsOverlay {
     private static final int AUTO_FULLSCREEN_INDEX = 2;
     private static final int REFRESH_INDEX = 3;
     private static final int RESET_INDEX = 4;
-    private static final int EXIT_INDEX = 6;
+    private static final int EXIT_INDEX = 5;
 
     private final Context context;
     private final FrameLayout root;
@@ -93,7 +93,6 @@ class SettingsOverlay {
         addItem(panel, autoFullscreenLabel());
         addItem(panel, "Refresh page");
         addItem(panel, "Reset session");
-        addItem(panel, "Close");
         addItem(panel, "Exit");
         updateSelection();
 

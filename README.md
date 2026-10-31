@@ -62,7 +62,6 @@ Available settings:
 - `Auto fullscreen`: enable or disable automatic TV fullscreen after selecting a video.
 - `Refresh page`: reload the current Dreaming Spanish page.
 - `Reset session`: clear WebView cookies, cache, local storage, session storage, history, and reload the start page.
-- `Close`: close settings and return to the website.
 - `Exit`: stop playback and close the app.
 
 ## Build Requirements
