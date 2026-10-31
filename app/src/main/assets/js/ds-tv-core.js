@@ -79,11 +79,18 @@
     return false;
   };
 
-  const ensurePlayerControls = () => {
-    document.querySelectorAll('.ds-shaka-player,.ds-youtube-player').forEach((player) => {
+  const playerSelector = '.ds-shaka-player,.ds-youtube-player';
+  const ensurePlayerControls = (root) => {
+    const players = [...root.querySelectorAll(playerSelector)];
+    if (root.matches?.(playerSelector)) players.unshift(root);
+    players.forEach((player) => {
       const host = player.closest('.embed-responsive') || player;
       host.classList.add('__ds-tv-has-player');
-      if (host.querySelector(':scope > .ds-tv-player-controls')) return;
+      const oldControls = host.querySelector(':scope > .ds-tv-player-controls');
+      const oldMenu = host.querySelector(':scope > .ds-tv-player-quality-menu');
+      if (oldControls && oldMenu) return;
+      oldControls?.remove();
+      oldMenu?.remove();
       const controls = document.createElement('div'); controls.className = 'ds-tv-player-controls';
       const makeButton = (text, action, value) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = text; b.setAttribute('aria-label', text); b.dataset.dsTvPlayerAction = action; if (value) b.dataset.dsTvPlayerValue = value; return b; };
       controls.appendChild(makeButton('Play/Pause', 'play-pause'));
@@ -94,11 +101,30 @@
       host.appendChild(controls); host.appendChild(menu);
     });
   };
-  ensurePlayerControls();
+  ensurePlayerControls(document);
   clearInterval(window.__dsTvEnsurePlayerControlsInterval);
-  window.__dsTvEnsurePlayerControlsInterval = setInterval(ensurePlayerControls, 1000);
   window.__dsTvPlayerControlsObserver && window.__dsTvPlayerControlsObserver.disconnect && window.__dsTvPlayerControlsObserver.disconnect();
-  window.__dsTvPlayerControlsObserver = new MutationObserver(() => ensurePlayerControls());
+  cancelAnimationFrame(window.__dsTvPlayerControlsFrame);
+  const pendingRoots = new Set();
+  const queueControls = (root) => {
+    pendingRoots.add(root);
+    if (window.__dsTvPlayerControlsFrame) return;
+    window.__dsTvPlayerControlsFrame = requestAnimationFrame(() => {
+      window.__dsTvPlayerControlsFrame = null;
+      for (const root of pendingRoots) if (document.contains(root)) ensurePlayerControls(root);
+      pendingRoots.clear();
+    });
+  };
+  window.__dsTvPlayerControlsFrame = null;
+  window.__dsTvPlayerControlsObserver = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node.nodeType === 1 && (node.matches(playerSelector) || node.querySelector(playerSelector))) queueControls(node);
+      }
+      if (record.target.matches?.('.embed-responsive') && [...record.removedNodes].some((node) =>
+        node.nodeType === 1 && node.matches('.ds-tv-player-controls,.ds-tv-player-quality-menu'))) queueControls(record.target);
+    }
+  });
   window.__dsTvPlayerControlsObserver.observe(document.body, { childList: true, subtree: true });
 
   window.__dsTvRevealPlayerControls = (el) => {
