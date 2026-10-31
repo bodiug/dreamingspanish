@@ -25,7 +25,7 @@ final class DesktopHtmlInterceptor {
     private DesktopHtmlInterceptor() {
     }
 
-    static WebResourceResponse loadDesktopHtml(String url, boolean autoplayEnabled) {
+    static WebResourceResponse loadDesktopHtml(String url, boolean autoplayEnabled, String networkPolicyScript) {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
@@ -51,7 +51,7 @@ final class DesktopHtmlInterceptor {
             try (InputStream responseStream = stream) {
                 html = new String(readFully(responseStream), StandardCharsets.UTF_8);
             }
-            String patchedHtml = patchInitialHtml(html, autoplayEnabled);
+            String patchedHtml = patchInitialHtml(html, autoplayEnabled, networkPolicyScript);
             return new WebResourceResponse(
                     "text/html",
                     "UTF-8",
@@ -68,12 +68,13 @@ final class DesktopHtmlInterceptor {
         }
     }
 
-    private static String patchInitialHtml(String html, boolean autoplayEnabled) {
+    private static String patchInitialHtml(String html, boolean autoplayEnabled, String networkPolicyScript) {
         html = patchWebsiteBootstrap(html);
         String autoplay = "<script>try{localStorage."
                 + (autoplayEnabled ? "removeItem('autoplay')" : "setItem('autoplay','false')")
                 + ";}catch(e){}</script>";
-        html = html.replaceFirst("<head>", "<head>" + autoplay);
+        html = html.replaceFirst("<head>", Matcher.quoteReplacement(
+                "<head><script>" + networkPolicyScript + "</script>" + autoplay));
         String viewport = "<meta name=\"viewport\" content=\"width=" + DESKTOP_VIEWPORT_WIDTH
                 + ", initial-scale=1, maximum-scale=1, user-scalable=no\">";
         if (html.contains("name=\"viewport\"")) {

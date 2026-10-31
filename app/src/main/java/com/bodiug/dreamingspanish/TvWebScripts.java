@@ -18,9 +18,15 @@ class TvWebScripts {
     private String coreScript;
     private String focusScript;
     private String autoplayScript;
+    private final String networkPolicyScript;
 
     TvWebScripts(Context context) {
         this.assetManager = context.getApplicationContext().getAssets();
+        networkPolicyScript = readAsset("js/ds-tv-network.js");
+    }
+
+    String networkPolicyScript() {
+        return networkPolicyScript;
     }
 
     String coreScript() {

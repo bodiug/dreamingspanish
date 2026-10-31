@@ -404,7 +404,7 @@ public class MainActivity extends Activity {
 
     private void configureWebView() {
         WebSettings settings = webView.getSettings();
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
@@ -447,7 +447,8 @@ public class MainActivity extends Activity {
                         && request.getUrl() != null
                         && "app.dreaming.com".equals(request.getUrl().getHost())) {
                     WebResourceResponse response = DesktopHtmlInterceptor.loadDesktopHtml(
-                            request.getUrl().toString(), preferences.getBoolean(PREF_WEBSITE_AUTOPLAY, true));
+                            request.getUrl().toString(), preferences.getBoolean(PREF_WEBSITE_AUTOPLAY, true),
+                            tvWebScripts.networkPolicyScript());
                     if (response != null) {
                         return response;
                     }
