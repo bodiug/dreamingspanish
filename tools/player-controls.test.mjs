@@ -31,7 +31,7 @@ function actionFixture(action) {
     MouseEvent: class { constructor(type) { this.type = type; } },
   });
   vm.runInContext(section('  window.__dsTvPointerAction =', '  window.__dsTvHasOpenPopup ='), context);
-  return { window: context.window, calls };
+  return { window: context.window, calls, target };
 }
 
 for (const action of ['play-pause', 'quality', 'set-quality']) {
@@ -49,6 +49,15 @@ test('both navigation modes return the native fullscreen marker', () => {
   assert.match(f.window.__dsTvPointerAction(50, 50, 1280, 720, 'click'), /^FULLSCREEN\|/);
   assert.match(f.window.__dsTvSelectedElementAction('click'), /^FULLSCREEN\|/);
   assert.deepEqual(f.calls, []);
+});
+
+test('video activation includes its destination for scoped automatic fullscreen', () => {
+  const f = actionFixture(undefined);
+  f.target.closest = (selector) => selector.startsWith('.ds-browse-videos__video') ? f.target : null;
+  f.target.href = 'https://app.dreaming.com/spanish/watch?id=next';
+  const result = f.window.__dsTvPointerAction(50, 50, 1280, 720, 'click');
+  assert.equal(decodeURIComponent(result.split('|')[1]), f.target.href);
+  assert.equal(f.calls.filter((value) => value === 'click').length, 1);
 });
 
 test('idle timeout hides controls even while a player button remains selected', () => {

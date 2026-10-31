@@ -139,7 +139,8 @@
     return true;
   };
 
-  window.__dsTvEnterTvFullscreen = function () {
+  window.__dsTvEnterTvFullscreen = function (expectedPage) {
+    if (expectedPage && location.href.split('#')[0] !== expectedPage.split('#')[0]) return false;
     if (!location.href.includes('/watch')) return false;
     const player = (document.querySelector('.ds-shaka-player,.ds-youtube-player,video')?.closest('.embed-responsive')) || document.querySelector('.embed-responsive') || document.querySelector('.ds-video-section__embed');
     if (!player) return false;
@@ -253,7 +254,8 @@
       }
     }
     const r = target.getBoundingClientRect();
-    return (fullscreenButton && action === 'click' ? 'FULLSCREEN|' : '') + (videoCard && action === 'click' ? 'VIDEO_CARD|' : '') + Math.round(r.left + r.width / 2) + ',' + Math.round(r.top + r.height / 2) + ',' + innerWidth + ',' + innerHeight;
+    const videoUrl = videoCard ? (target.href || target.querySelector('a[href]')?.href || '') : '';
+    return (fullscreenButton && action === 'click' ? 'FULLSCREEN|' : '') + (videoCard && action === 'click' ? 'VIDEO_CARD|' + encodeURIComponent(videoUrl) + '|' : '') + Math.round(r.left + r.width / 2) + ',' + Math.round(r.top + r.height / 2) + ',' + innerWidth + ',' + innerHeight;
   };
 
   window.__dsTvHasOpenPopup = function () {

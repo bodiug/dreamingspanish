@@ -2,6 +2,7 @@ package com.bodiug.dreamingspanish;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -67,6 +68,10 @@ class TvWebScripts {
 
     String enterTvFullscreenCall() {
         return "window.__dsTvEnterTvFullscreen();";
+    }
+
+    String enterTvFullscreenCall(String targetUrl) {
+        return "window.__dsTvEnterTvFullscreen(" + JSONObject.quote(targetUrl) + ");";
     }
 
     String exitTvFullscreenCall() {

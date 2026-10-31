@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,7 +23,10 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebStorage;
+import android.webkit.ValueCallback;
 import android.widget.FrameLayout;
+import org.json.JSONException;
+import org.json.JSONTokener;
 
 public class MainActivity extends Activity {
     private static final String START_URL =
@@ -47,9 +51,12 @@ public class MainActivity extends Activity {
     private boolean autoplayEnabled = true;
     private boolean autoFullscreenEnabled = true;
     private boolean backLongPressTriggered;
-    private boolean pendingAutoFullscreen;
     private boolean tvFullscreenMode;
-    private int autoFullscreenAttempts;
+    private final AutoFullscreenRequest autoFullscreenRequest = new AutoFullscreenRequest();
+    private final Runnable autoFullscreenRunnable = this::tryAutoFullscreen;
+    private int pageGeneration;
+    private boolean destroyed;
+    private String currentPage;
     private SharedPreferences preferences;
     private final Runnable showSettingsRunnable = () -> {
         backLongPressTriggered = true;
@@ -78,7 +85,7 @@ public class MainActivity extends Activity {
         public void onAutoFullscreenChanged(boolean enabled) {
             autoFullscreenEnabled = enabled;
             if (!enabled) {
-                pendingAutoFullscreen = false;
+                cancelAutoFullscreen();
             }
             preferences.edit().putBoolean(PREF_AUTO_FULLSCREEN, enabled).apply();
         }
@@ -165,18 +172,21 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        destroyed = true;
+        pageGeneration++;
+        cancelAutoFullscreen();
+        handler.removeCallbacksAndMessages(null);
         if (webView != null) {
             root.removeView(webView);
             webView.destroy();
+            webView = null;
         }
-        handler.removeCallbacks(showSettingsRunnable);
-        handler.removeCallbacks(hideCursorRunnable);
-        handler.removeCallbacks(videoEndedCheckRunnable);
         super.onDestroy();
     }
 
     @Override
     public void onBackPressed() {
+        cancelAutoFullscreen();
         if (fullScreenView != null) {
             exitFullScreenVideo();
         } else if (webView != null && webView.canGoBack()) {
@@ -323,6 +333,8 @@ public class MainActivity extends Activity {
     }
 
     private void resetSession() {
+        pageGeneration++;
+        cancelAutoFullscreen();
         webView.evaluateJavascript(tvWebScripts.clearStorageCall(), null);
         webView.clearCache(true);
         webView.clearHistory();
@@ -330,14 +342,15 @@ public class MainActivity extends Activity {
         WebStorage.getInstance().deleteAllData();
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.removeAllCookies(value -> {
+            if (destroyed) return;
             cookieManager.flush();
             webView.loadUrl(START_URL);
         });
     }
 
     private void refreshPage() {
-        pendingAutoFullscreen = false;
-        autoFullscreenAttempts = 0;
+        pageGeneration++;
+        cancelAutoFullscreen();
         tvFullscreenMode = false;
         handler.removeCallbacks(videoEndedCheckRunnable);
         webView.reload();
@@ -382,10 +395,16 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                pageChanged(url);
                 if (fullScreenView == null) {
                     view.setVisibility(View.INVISIBLE);
                 }
                 super.onPageStarted(view, url, favicon);
+            }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                if (url != null && !url.equals(currentPage)) pageChanged(url);
             }
 
             @Override
@@ -416,7 +435,7 @@ public class MainActivity extends Activity {
                     if (fullScreenView == null) {
                         view.setVisibility(View.VISIBLE);
                     }
-                    if (pendingAutoFullscreen && url != null && url.contains("/watch")) {
+                    if (autoFullscreenRequest.isPending() && url != null && url.contains("/watch")) {
                         scheduleAutoFullscreenAttempt(700);
                     }
                 });
@@ -432,8 +451,7 @@ public class MainActivity extends Activity {
                 }
                 fullScreenView = view;
                 fullScreenCallback = callback;
-                pendingAutoFullscreen = false;
-                autoFullscreenAttempts = 0;
+                cancelAutoFullscreen();
                 webView.setVisibility(View.GONE);
                 cursorView.setVisibility(View.GONE);
                 root.addView(view, new FrameLayout.LayoutParams(
@@ -454,7 +472,7 @@ public class MainActivity extends Activity {
     }
 
     private void injectTvLayoutSupport(Runnable afterInjected) {
-        webView.evaluateJavascript(tvWebScripts.coreScript(), value -> {
+        evaluatePageScript(tvWebScripts.coreScript(), value -> {
             if (afterInjected != null) {
                 afterInjected.run();
             }
@@ -469,6 +487,7 @@ public class MainActivity extends Activity {
         if (fullScreenView == null) {
             return;
         }
+        cancelAutoFullscreen();
         root.removeView(fullScreenView);
         fullScreenView = null;
         tvFullscreenMode = false;
@@ -485,18 +504,35 @@ public class MainActivity extends Activity {
     }
 
     private void clickElementUnderCursor() {
-        webView.evaluateJavascript(
+        evaluateElementAction(
                 tvWebScripts.pointerActionCall(
                         cursorView.getCursorX(), cursorView.getCursorY(),
-                        webView.getWidth(), webView.getHeight(), "click"),
-                this::handleElementActionResult);
+                        webView.getWidth(), webView.getHeight(), "click"));
     }
 
     private void clickSelectedElement() {
-        webView.evaluateJavascript(tvWebScripts.selectedElementActionCall("click"), this::handleElementActionResult);
+        evaluateElementAction(tvWebScripts.selectedElementActionCall("click"));
     }
 
-    private void handleElementActionResult(String value) {
+    private void evaluateElementAction(String script) {
+        int generation = pageGeneration;
+        webView.evaluateJavascript(script, value -> handleElementActionResult(value, generation));
+    }
+
+    private void handleElementActionResult(String value, int generation) {
+        if (destroyed) return;
+        try {
+            value = String.valueOf(new JSONTokener(value == null ? "null" : value).nextValue());
+        } catch (JSONException e) {
+            return;
+        }
+        String targetUrl = null;
+        if (value.startsWith("VIDEO_CARD|")) {
+            String[] parts = value.split("\\|", 3);
+            if (parts.length == 3 && !parts[1].isEmpty()) targetUrl = Uri.decode(parts[1]);
+        }
+        // A video click may itself have changed the page before its result arrives.
+        if (generation != pageGeneration && (targetUrl == null || !targetUrl.equals(currentPage))) return;
         if (value != null && value.contains("FULLSCREEN")) {
             if (tvFullscreenMode) {
                 exitTvFullscreenMode();
@@ -504,22 +540,23 @@ public class MainActivity extends Activity {
                 enterTvFullscreenMode();
             }
         }
-        if (autoFullscreenEnabled && value != null && value.contains("VIDEO_CARD")) {
-            pendingAutoFullscreen = true;
-            autoFullscreenAttempts = 0;
+        if (autoFullscreenEnabled && targetUrl != null) {
+            cancelAutoFullscreen();
+            autoFullscreenRequest.start(targetUrl);
             scheduleAutoFullscreenAttempt(1200);
         }
-        handler.postDelayed(this::selectOpenPopupIfPresent, 180);
+        postPageAction(this::selectOpenPopupIfPresent, 180);
     }
 
     private void enterTvFullscreenMode() {
+        cancelAutoFullscreen();
         if (webView == null) {
             return;
         }
-        webView.evaluateJavascript(tvWebScripts.enterTvFullscreenCall(), value -> {
+        evaluatePageScript(tvWebScripts.enterTvFullscreenCall(), value -> {
             if ("true".equals(value)) {
                 tvFullscreenMode = true;
-                handler.postDelayed(videoEndedCheckRunnable, VIDEO_ENDED_CHECK_INTERVAL_MS);
+                scheduleVideoEndedCheck();
             }
         });
     }
@@ -528,19 +565,21 @@ public class MainActivity extends Activity {
         if (!tvFullscreenMode || webView == null) {
             return;
         }
-        webView.evaluateJavascript(tvWebScripts.videoEndedCall(), value -> {
+        int generation = autoFullscreenRequest.generation();
+        evaluatePageScript(tvWebScripts.videoEndedCall(), value -> {
+            if (!tvFullscreenMode || generation != autoFullscreenRequest.generation()) return;
             if ("true".equals(value)) {
                 exitTvFullscreenMode();
             } else if (tvFullscreenMode) {
-                handler.postDelayed(videoEndedCheckRunnable, VIDEO_ENDED_CHECK_INTERVAL_MS);
+                scheduleVideoEndedCheck();
             }
         });
     }
 
     private void navigateToElement(String direction) {
-        webView.evaluateJavascript(tvWebScripts.spatialNavigateCall(direction), value -> {
+        evaluatePageScript(tvWebScripts.spatialNavigateCall(direction), value -> {
             if ("\"SCROLLED\"".equals(value)) {
-                handler.postDelayed(() -> navigateToElement("nearest"), 120);
+                postPageAction(() -> navigateToElement("nearest"), 120);
             } else {
                 moveCursorToPagePoint(value);
             }
@@ -548,31 +587,66 @@ public class MainActivity extends Activity {
     }
 
     private void scheduleAutoFullscreenAttempt(long delayMs) {
-        handler.postDelayed(this::tryAutoFullscreen, delayMs);
+        handler.removeCallbacks(autoFullscreenRunnable);
+        handler.postDelayed(autoFullscreenRunnable, delayMs);
     }
 
     private void tryAutoFullscreen() {
-        if (!autoFullscreenEnabled || !pendingAutoFullscreen || fullScreenView != null || webView == null) {
+        if (!autoFullscreenEnabled || !autoFullscreenRequest.isPending() || fullScreenView != null || webView == null || destroyed) {
             return;
         }
-        autoFullscreenAttempts++;
-        webView.evaluateJavascript(tvWebScripts.enterTvFullscreenCall(), value -> {
+        if (!autoFullscreenRequest.nextAttempt()) {
+            cancelAutoFullscreen();
+            return;
+        }
+        int token = autoFullscreenRequest.generation();
+        webView.evaluateJavascript(tvWebScripts.enterTvFullscreenCall(autoFullscreenRequest.targetUrl()), value -> {
+            if (destroyed || !autoFullscreenRequest.isCurrent(token)) return;
             if ("true".equals(value)) {
-                pendingAutoFullscreen = false;
+                cancelAutoFullscreen();
                 tvFullscreenMode = true;
-                autoFullscreenAttempts = 0;
-                handler.postDelayed(videoEndedCheckRunnable, VIDEO_ENDED_CHECK_INTERVAL_MS);
-            } else if (pendingAutoFullscreen && autoFullscreenAttempts < 10) {
-                scheduleAutoFullscreenAttempt(700);
+                scheduleVideoEndedCheck();
             } else {
-                pendingAutoFullscreen = false;
-                autoFullscreenAttempts = 0;
+                scheduleAutoFullscreenAttempt(700);
             }
         });
     }
 
+    private void cancelAutoFullscreen() {
+        handler.removeCallbacks(autoFullscreenRunnable);
+        autoFullscreenRequest.cancel();
+    }
+
+    private void pageChanged(String url) {
+        pageGeneration++;
+        currentPage = url;
+        autoFullscreenRequest.onNavigation(url);
+        if (!autoFullscreenRequest.isPending()) handler.removeCallbacks(autoFullscreenRunnable);
+        if (tvFullscreenMode) scheduleVideoEndedCheck();
+    }
+
+    private void scheduleVideoEndedCheck() {
+        handler.removeCallbacks(videoEndedCheckRunnable);
+        handler.postDelayed(videoEndedCheckRunnable, VIDEO_ENDED_CHECK_INTERVAL_MS);
+    }
+
+    private void evaluatePageScript(String script, ValueCallback<String> callback) {
+        if (destroyed || webView == null) return;
+        int generation = pageGeneration;
+        webView.evaluateJavascript(script, value -> {
+            if (!destroyed && generation == pageGeneration) callback.onReceiveValue(value);
+        });
+    }
+
+    private void postPageAction(Runnable action, long delayMs) {
+        int generation = pageGeneration;
+        handler.postDelayed(() -> {
+            if (!destroyed && generation == pageGeneration) action.run();
+        }, delayMs);
+    }
+
     private void selectOpenPopupIfPresent() {
-        webView.evaluateJavascript(tvWebScripts.hasOpenPopupCall(), value -> {
+        evaluatePageScript(tvWebScripts.hasOpenPopupCall(), value -> {
             if ("true".equals(value)) {
                 navigateToElement("nearest");
             }
@@ -580,7 +654,7 @@ public class MainActivity extends Activity {
     }
 
     private void closeOpenPopup() {
-        webView.evaluateJavascript(tvWebScripts.closeOpenPopupCall(), value -> {
+        evaluatePageScript(tvWebScripts.closeOpenPopupCall(), value -> {
             if (!"true".equals(value)) {
                 onBackPressed();
             }
@@ -588,9 +662,9 @@ public class MainActivity extends Activity {
     }
 
     private void closeOpenPopupOrHideControlsOrExitTvFullscreen() {
-        webView.evaluateJavascript(tvWebScripts.closeOpenPopupCall(), value -> {
+        evaluatePageScript(tvWebScripts.closeOpenPopupCall(), value -> {
             if (!"true".equals(value)) {
-                webView.evaluateJavascript(tvWebScripts.hideVisiblePlayerControlsCall(), hidden -> {
+                evaluatePageScript(tvWebScripts.hideVisiblePlayerControlsCall(), hidden -> {
                     if (!"true".equals(hidden)) {
                         exitTvFullscreenMode();
                     }
@@ -600,10 +674,11 @@ public class MainActivity extends Activity {
     }
 
     private void focusElementUnderCursor() {
-        webView.evaluateJavascript(tvWebScripts.selectedElementActionCall("focus"), this::moveCursorToPagePoint);
+        evaluatePageScript(tvWebScripts.selectedElementActionCall("focus"), this::moveCursorToPagePoint);
     }
 
     private void exitTvFullscreenMode() {
+        cancelAutoFullscreen();
         tvFullscreenMode = false;
         handler.removeCallbacks(videoEndedCheckRunnable);
         if (webView != null) {
