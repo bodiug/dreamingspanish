@@ -203,17 +203,19 @@
     const y = nativeY * window.innerHeight / viewHeight;
     const el = document.elementFromPoint(x, y);
     if (!el) return;
-    const target = el.closest('a,button,[role="button"],input,textarea,select,video,[tabindex]') || el;
-    target.focus && target.focus({ preventScroll: true });
-    if (action === 'click') {
-      ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach((type) => target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window })));
-    }
+    window.__dsTvPointerX = x;
+    window.__dsTvPointerY = y;
+    return window.__dsTvElementAction(el, action);
   };
 
   window.__dsTvSelectedElementAction = function (action) {
     const selected = window.__dsTvSelected;
     const pointerEl = document.elementFromPoint(window.__dsTvPointerX || window.innerWidth / 2, window.__dsTvPointerY || window.innerHeight / 2);
     const base = selected || pointerEl;
+    return window.__dsTvElementAction(base, action);
+  };
+
+  window.__dsTvElementAction = function (base, action) {
     if (!base) return '';
     const isPopupItem = base.closest && base.closest('.dropdown-menu.show,.ds-form-dropdown__menu.show,[role="listbox"],[role="menu"],[role="dialog"],.ds-select-menu,.ds-popover,[class*="popover"],.ds-tv-player-quality-menu.show');
     const commentsCard = base.closest && base.closest('.ds-video-section__card-comments');

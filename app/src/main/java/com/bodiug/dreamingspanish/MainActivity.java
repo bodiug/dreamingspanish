@@ -489,25 +489,27 @@ public class MainActivity extends Activity {
                 tvWebScripts.pointerActionCall(
                         cursorView.getCursorX(), cursorView.getCursorY(),
                         webView.getWidth(), webView.getHeight(), "click"),
-                null);
+                this::handleElementActionResult);
     }
 
     private void clickSelectedElement() {
-        webView.evaluateJavascript(tvWebScripts.selectedElementActionCall("click"), value -> {
-            if (value != null && value.contains("FULLSCREEN")) {
-                if (tvFullscreenMode) {
-                    exitTvFullscreenMode();
-                } else {
-                    enterTvFullscreenMode();
-                }
+        webView.evaluateJavascript(tvWebScripts.selectedElementActionCall("click"), this::handleElementActionResult);
+    }
+
+    private void handleElementActionResult(String value) {
+        if (value != null && value.contains("FULLSCREEN")) {
+            if (tvFullscreenMode) {
+                exitTvFullscreenMode();
+            } else {
+                enterTvFullscreenMode();
             }
-            if (autoFullscreenEnabled && value != null && value.contains("VIDEO_CARD")) {
-                pendingAutoFullscreen = true;
-                autoFullscreenAttempts = 0;
-                scheduleAutoFullscreenAttempt(1200);
-            }
-            handler.postDelayed(this::selectOpenPopupIfPresent, 180);
-        });
+        }
+        if (autoFullscreenEnabled && value != null && value.contains("VIDEO_CARD")) {
+            pendingAutoFullscreen = true;
+            autoFullscreenAttempts = 0;
+            scheduleAutoFullscreenAttempt(1200);
+        }
+        handler.postDelayed(this::selectOpenPopupIfPresent, 180);
     }
 
     private void enterTvFullscreenMode() {
