@@ -290,28 +290,39 @@
     const interactive = 'a[href],button,[role="button"],[onclick],input:not([type="hidden"]),textarea,select,video,[tabindex]:not([tabindex="-1"])';
     const selStyleId = 'ds-tv-selection-style';
     if (!document.getElementById(selStyleId)) { const ss = document.createElement('style'); ss.id = selStyleId; ss.textContent = '.__ds-tv-selected{outline:5px solid #00d084!important;outline-offset:5px!important;box-shadow:0 0 0 9px rgba(0,208,132,.28)!important;border-radius:10px!important;}'; document.head.appendChild(ss); }
-    const isVisible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 24 && r.height > 24 && r.bottom > 8 && r.right > 8 && r.top < innerHeight - 8 && r.left < innerWidth - 8 && cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0'; };
-    const fullyVisible = (el) => { const r = el.getBoundingClientRect(); return r.top >= 155 && r.bottom <= innerHeight - 12 && r.left >= 0 && r.right <= innerWidth; };
-    const center = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; };
+    // Layout snapshots live for one key action only; scrolling starts a new snapshot.
+    const rectangles = new Map();
+    const styles = new Map();
+    const rect = (el) => {
+      if (!rectangles.has(el)) rectangles.set(el, el.getBoundingClientRect());
+      return rectangles.get(el);
+    };
+    const computedStyle = (el) => {
+      if (!styles.has(el)) styles.set(el, getComputedStyle(el));
+      return styles.get(el);
+    };
+    const isVisible = (el) => { const r = rect(el); const cs = computedStyle(el); return r.width > 24 && r.height > 24 && r.bottom > 8 && r.right > 8 && r.top < innerHeight - 8 && r.left < innerWidth - 8 && cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0'; };
+    const fullyVisible = (el) => { const r = rect(el); return r.top >= 155 && r.bottom <= innerHeight - 12 && r.left >= 0 && r.right <= innerWidth; };
+    const center = (el) => { const r = rect(el); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; };
     const clickable = (el) => { if (el.matches && el.matches(interactive)) return el; const inner = el.querySelector && el.querySelector(interactive); if (inner) return inner; return el.closest && el.closest(interactive) || el; };
     window.__dsTvClickTarget = clickable;
     const menuRoot = document.querySelector('.ds-sidebar-area') || document.querySelector('nav,aside,[role="navigation"]') || document.body;
     const blockedByMenu = (el) => { const p = center(el); const top = document.elementFromPoint(p.x, p.y); return top && top.closest && top.closest('nav,aside,[role="navigation"],header') && !el.contains(top); };
     const allVideos = [...document.querySelectorAll('.ds-browse-videos__video > a[href]')];
-    const videoItems = allVideos.filter((el) => isVisible(el) && !blockedByMenu(el)).sort((a, b) => { const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect(); return ar.top - br.top || ar.left - br.left; });
+    const videoItems = allVideos.filter((el) => isVisible(el) && !blockedByMenu(el)).sort((a, b) => { const ar = rect(a); const br = rect(b); return ar.top - br.top || ar.left - br.left; });
     const watchRoot = document.querySelector('.ds-watch-page');
     const watchSelector = '[data-ds-tv-player-action],.ds-video-settings-menu__option';
     const labelOf = (el) => (((el && el.getAttribute && el.getAttribute('aria-label')) || (el && el.title) || (el && el.innerText) || (el && el.textContent) || '') + '').trim();
-    const playerControlVisible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 20 && r.height > 20 && r.bottom > 8 && r.right > 8 && r.top < innerHeight - 8 && r.left < innerWidth - 8 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+    const playerControlVisible = (el) => { const r = rect(el); const cs = computedStyle(el); return r.width > 20 && r.height > 20 && r.bottom > 8 && r.right > 8 && r.top < innerHeight - 8 && r.left < innerWidth - 8 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
     const isWantedPlayerControl = (el) => { const label = labelOf(el); return !!(el.matches && el.matches('[data-ds-tv-player-action],.shaka-play-button,.shaka-video-settings-button,.shaka-fullscreen-button,.ds-video-settings-menu__option')) || /^(play\/pause|play|pause|video settings|settings|quality|full screen|fullscreen)$/i.test(label) || /\b(quality|resolution)\b/i.test(label) || /^(auto|1080p?|720p?|480p?|360p?|240p?)$/i.test(label); };
     const isBlockedPlayerControl = (el) => { const label = labelOf(el); return !!(el.matches && el.matches('.shaka-skip-button,.shaka-mute-button,.shaka-current-time,.shaka-volume-bar,.shaka-seek-bar')) || /\b(next video|skip|mute|volume|share|download|comments?)\b/i.test(label); };
-    const watchItems = watchRoot ? [...new Set([...watchRoot.querySelectorAll(watchSelector)].map(clickable))].filter((el) => playerControlVisible(el) && isWantedPlayerControl(el) && !isBlockedPlayerControl(el) && !el.closest('.ds-sidebar-area')).sort((a, b) => { const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect(); return ar.top - br.top || ar.left - br.left; }) : [];
+    const watchItems = watchRoot ? [...new Set([...watchRoot.querySelectorAll(watchSelector)].map(clickable))].filter((el) => playerControlVisible(el) && isWantedPlayerControl(el) && !isBlockedPlayerControl(el) && !el.closest('.ds-sidebar-area')).sort((a, b) => { const ar = rect(a); const br = rect(b); return ar.top - br.top || ar.left - br.left; }) : [];
     const toolbarRoot = document.querySelector('.ds-browse-toolbar');
-    const toolbarItems = toolbarRoot ? [...new Set([...toolbarRoot.querySelectorAll('button,[role="button"],a[href],input:not([type="hidden"]),[tabindex]:not([tabindex="-1"])')].map(clickable))].filter(isVisible).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left) : [];
-    const menuItems = [...new Set([...menuRoot.querySelectorAll('a[href],button,[role="button"],[tabindex]:not([tabindex="-1"])')].map(clickable))].filter(isVisible).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+    const toolbarItems = toolbarRoot ? [...new Set([...toolbarRoot.querySelectorAll('button,[role="button"],a[href],input:not([type="hidden"]),[tabindex]:not([tabindex="-1"])')].map(clickable))].filter(isVisible).sort((a, b) => rect(a).left - rect(b).left) : [];
+    const menuItems = [...new Set([...menuRoot.querySelectorAll('a[href],button,[role="button"],[tabindex]:not([tabindex="-1"])')].map(clickable))].filter(isVisible).sort((a, b) => rect(a).top - rect(b).top);
     const popupRoots = [...document.querySelectorAll('.dropdown-menu.show,.ds-form-dropdown__menu.show,[role="listbox"],[role="menu"],[role="dialog"],.ds-select-menu,.ds-popover,[class*="popover"],.ds-video-settings-menu,.ds-tv-player-quality-menu.show')].filter((el) => isVisible(el) && !el.closest('.ds-sidebar-area') && !el.classList.contains('ds-browse-menu'));
-    const popupRoot = popupRoots.sort((a, b) => b.getBoundingClientRect().width * b.getBoundingClientRect().height - a.getBoundingClientRect().width * a.getBoundingClientRect().height)[0];
-    const popupItems = popupRoot ? [...new Set([...popupRoot.querySelectorAll('[data-ds-tv-player-action],.dropdown-item,.ds-form-dropdown__item,.ds-video-settings-menu__option,button,a[role="button"],[role="button"],[role="option"],[role="menuitem"],a[href],label,[tabindex]:not([tabindex="-1"])')].map((el) => el.classList && el.classList.contains('dropdown-item') ? el : clickable(el)))].filter(isVisible).sort((a, b) => { const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect(); return ar.top - br.top || ar.left - br.left; }) : [];
+    const popupRoot = popupRoots.sort((a, b) => rect(b).width * rect(b).height - rect(a).width * rect(a).height)[0];
+    const popupItems = popupRoot ? [...new Set([...popupRoot.querySelectorAll('[data-ds-tv-player-action],.dropdown-item,.ds-form-dropdown__item,.ds-video-settings-menu__option,button,a[role="button"],[role="button"],[role="option"],[role="menuitem"],a[href],label,[tabindex]:not([tabindex="-1"])')].map((el) => el.classList && el.classList.contains('dropdown-item') ? el : clickable(el)))].filter(isVisible).sort((a, b) => { const ar = rect(a); const br = rect(b); return ar.top - br.top || ar.left - br.left; }) : [];
     const watchMenuItem = menuItems.find((el) => el.matches && el.matches('.ds-sidebar__links-link--watch')) || menuItems.find((el) => /\bwatch\b/i.test((el.textContent || '').trim())) || menuItems[0];
     const menuStartItem = watchMenuItem || menuItems[0];
     let current = window.__dsTvSelected;
@@ -333,10 +344,10 @@
     if (!current || !document.contains(current) || !isVisible(current)) { current = document.activeElement && isVisible(document.activeElement) ? document.activeElement : null; }
     let origin = current ? center(current) : { x: window.__dsTvPreferredX || innerWidth / 2, y: window.__dsTvPreferredY || innerHeight / 2 };
     let next = null;
-    const videoCenters = videoItems.map((el) => ({ el, c: center(el), r: el.getBoundingClientRect() }));
-    const watchCenters = watchItems.map((el) => ({ el, c: center(el), r: el.getBoundingClientRect() }));
-    const toolbarCenters = toolbarItems.map((el) => ({ el, c: center(el), r: el.getBoundingClientRect() }));
-    const popupCenters = popupItems.map((el) => ({ el, c: center(el), r: el.getBoundingClientRect() }));
+    const videoCenters = videoItems.map((el) => ({ el, c: center(el), r: rect(el) }));
+    const watchCenters = watchItems.map((el) => ({ el, c: center(el), r: rect(el) }));
+    const toolbarCenters = toolbarItems.map((el) => ({ el, c: center(el), r: rect(el) }));
+    const popupCenters = popupItems.map((el) => ({ el, c: center(el), r: rect(el) }));
     const selectNearest = (pool, x, y) => pool.map((item) => ({ item, score: Math.abs(item.c.x - x) * 2 + Math.abs(item.c.y - y) })).sort((a, b) => a.score - b.score)[0]?.item?.el;
     if (direction === 'first') { next = videoItems[0] || watchItems[0] || items[0]; }
     else if (direction === 'nearest' && window.__dsTvPendingElement && document.contains(window.__dsTvPendingElement) && isVisible(window.__dsTvPendingElement)) { next = window.__dsTvPendingElement; window.__dsTvPendingElement = null; }
@@ -364,13 +375,13 @@
     else if ((direction === 'up' || direction === 'down') && currentIsVideo) {
       const sign = direction === 'down' ? 1 : -1;
       const rows = [...new Set(videoCenters.map((item) => Math.round(item.r.top)))].sort((a, b) => a - b);
-      const currentTop = current.getBoundingClientRect().top;
+      const currentTop = rect(current).top;
       const currentRow = rows.reduce((best, row) => Math.abs(row - currentTop) < Math.abs(best - currentTop) ? row : best, rows[0]);
       const targetRow = direction === 'down' ? rows.find((row) => row > currentRow + 30) : [...rows].reverse().find((row) => row < currentRow - 30);
       if (targetRow !== undefined) {
         const rowItems = videoCenters.filter((item) => Math.abs(item.r.top - targetRow) < 35);
         next = selectNearest(rowItems, window.__dsTvPreferredX || origin.x, targetRow);
-        if (next && !fullyVisible(next)) { const nr = next.getBoundingClientRect(); const cr = current.getBoundingClientRect(); window.__dsTvPendingElement = next; window.__dsTvPreferredX = center(next).x; window.__dsTvPreferredY = origin.y; window.__dsTvSelected = null; document.querySelectorAll('.__ds-tv-selected').forEach((el) => el.classList.remove('__ds-tv-selected')); window.scrollBy({ top: nr.top - cr.top, left: 0, behavior: 'auto' }); return 'SCROLLED'; }
+        if (next && !fullyVisible(next)) { const nr = rect(next); const cr = rect(current); window.__dsTvPendingElement = next; window.__dsTvPreferredX = center(next).x; window.__dsTvPreferredY = origin.y; window.__dsTvSelected = null; document.querySelectorAll('.__ds-tv-selected').forEach((el) => el.classList.remove('__ds-tv-selected')); window.scrollBy({ top: nr.top - cr.top, left: 0, behavior: 'auto' }); return 'SCROLLED'; }
       }
       if (!next && direction === 'up' && toolbarCenters.length) { next = selectNearest(toolbarCenters, window.__dsTvPreferredX || origin.x, 0); }
       if (!next) { const rowStep = Math.max(240, Math.min(330, Math.abs((rows[1] || origin.y + 272) - rows[0]) || 272)); window.__dsTvPreferredX = origin.x; window.__dsTvPreferredY = origin.y; window.__dsTvSelected = null; document.querySelectorAll('.__ds-tv-selected').forEach((el) => el.classList.remove('__ds-tv-selected')); window.scrollBy({ top: sign * rowStep, left: 0, behavior: 'auto' }); return 'SCROLLED'; }
