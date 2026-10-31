@@ -100,6 +100,14 @@ public class MainActivity extends Activity {
         public void onResetRequested() {
             resetSession();
         }
+
+        @Override
+        public void onClosed() {
+            if (destroyed || webView == null) return;
+            webView.requestFocus();
+            hideSystemUi();
+            showCursorTemporarily();
+        }
     };
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -347,9 +355,6 @@ public class MainActivity extends Activity {
 
     private void hideSettingsOverlay() {
         settingsOverlay.hide();
-        webView.requestFocus();
-        hideSystemUi();
-        showCursorTemporarily();
     }
 
     private void resetSession() {

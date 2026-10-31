@@ -23,6 +23,8 @@ class SettingsOverlay {
         void onRefreshRequested();
 
         void onResetRequested();
+
+        void onClosed();
     }
 
     private static final int NAVIGATION_INDEX = 0;
@@ -104,6 +106,7 @@ class SettingsOverlay {
         if (overlay != null) {
             root.removeView(overlay);
             overlay = null;
+            listener.onClosed();
         }
     }
 
@@ -130,6 +133,12 @@ class SettingsOverlay {
         item.setTextColor(Color.WHITE);
         item.setGravity(Gravity.CENTER_VERTICAL);
         item.setPadding(dpToPx(18), dpToPx(14), dpToPx(18), dpToPx(14));
+        int index = items.size();
+        item.setOnClickListener(view -> {
+            selectedIndex = index;
+            updateSelection();
+            activate();
+        });
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 dpToPx(58));
