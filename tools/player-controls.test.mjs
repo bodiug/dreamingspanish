@@ -76,3 +76,71 @@ test('idle timeout hides controls even while a player button remains selected', 
   assert.equal(classes.has('__ds-tv-reveal'), false);
   assert.equal(classes.has('__ds-tv-selection-active'), false);
 });
+
+function qualityFixture() {
+  const timers = new Map();
+  const location = { href: 'https://app.dreaming.com/spanish/watch?id=first' };
+  const items = [];
+  let scans = 0;
+  let timerId = 0;
+  const player = {
+    querySelector: () => null,
+    querySelectorAll(selector) {
+      assert(!selector.endsWith(',button'));
+      scans++;
+      return items;
+    },
+  };
+  const context = vm.createContext({
+    window: { __dsTvVisible: () => true }, location,
+    document: { querySelector: () => player, contains: (el) => el === player },
+    setTimeout(callback) { timers.set(++timerId, callback); return timerId; },
+    clearTimeout(id) { timers.delete(id); },
+  });
+  vm.runInContext(section('  window.__dsTvShakaQuality =', '  window.__dsTvPlayerAction ='), context);
+  return {
+    location, items, window: context.window,
+    get scans() { return scans; },
+    flush() {
+      let count = 0;
+      while (timers.size) {
+        assert(++count < 30, 'quality retries must terminate');
+        const [id, callback] = timers.entries().next().value;
+        timers.delete(id);
+        callback();
+      }
+    },
+  };
+}
+
+test('missing Shaka quality stops after a bounded number of native-menu attempts', () => {
+  const f = qualityFixture();
+  let clicks = 0;
+  f.items.push({ innerText: 'Quality', getAttribute: () => '', click: () => clicks++ });
+  f.window.__dsTvShakaQuality('hd1080');
+  f.flush();
+  assert.equal(f.scans, 12);
+  assert.equal(clicks, 1);
+});
+
+test('Shaka quality selects an available option and stops', () => {
+  const f = qualityFixture();
+  let clicks = 0;
+  f.items.push({ innerText: '1080p', getAttribute: () => '', click: () => clicks++ });
+  f.window.__dsTvShakaQuality('hd1080');
+  f.flush();
+  assert.equal(clicks, 1);
+  assert.equal(f.scans, 1);
+});
+
+test('Shaka quality abandons a previous page and superseded requests', () => {
+  const f = qualityFixture();
+  f.window.__dsTvShakaQuality('hd1080');
+  f.location.href += '&next=true';
+  f.flush();
+  assert.equal(f.scans, 0);
+  f.window.__dsTvShakaQuality('hd1080');
+  f.window.__dsTvShakaQuality('hd720');
+  f.flush();
+  assert.equal(f.scans, 12);
+});

@@ -41,19 +41,28 @@
   window.__dsTvVisible = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 20 && r.height > 20 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth && s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0'; };
 
   window.__dsTvShakaQuality = (value) => {
+    clearTimeout(window.__dsTvShakaQualityTimer);
     const player = document.querySelector('.ds-shaka-player'); if (!player) return false;
+    const page = location.href;
+    let attempts = 0;
+    let openedQuality = false;
     const label = { default: 'auto', hd1080: '1080', hd720: '720', large: '480', medium: '360', small: '240' }[value || 'default'] || 'auto';
     window.__dsTvRevealPlayerControls && window.__dsTvRevealPlayerControls(player);
     const clickMatch = () => {
-      const items = [...document.querySelectorAll('.ds-video-settings-menu__option,.shaka-settings-menu button,.shaka-overflow-menu button,button')].filter(window.__dsTvVisible);
+      if (location.href !== page || !document.contains(player) || document.querySelector('.ds-shaka-player') !== player) return false;
+      attempts++;
+      const items = [...player.querySelectorAll('.ds-video-settings-menu__option,.shaka-settings-menu button,.shaka-overflow-menu button')].filter(window.__dsTvVisible);
       const text = (el) => ((el.getAttribute('aria-label') || el.title || el.innerText || el.textContent || '') + '').toLowerCase();
       const direct = items.find((el) => label === 'auto' ? /^\s*auto\b/.test(text(el)) || /\bauto\b/.test(text(el)) : (text(el).includes(label) && /p?\b/.test(text(el))));
       if (direct) { direct.click(); return true; }
       const quality = items.find((el) => /quality|resolution/.test(text(el)));
-      if (quality) { quality.click(); setTimeout(clickMatch, 140); return true; }
+      if (quality && !openedQuality) { quality.click(); openedQuality = true; }
+      if (attempts < 12) window.__dsTvShakaQualityTimer = setTimeout(clickMatch, 140);
       return false;
     };
-    player.querySelector('.shaka-video-settings-button')?.click(); setTimeout(clickMatch, 160); return true;
+    player.querySelector('.shaka-video-settings-button')?.click();
+    window.__dsTvShakaQualityTimer = setTimeout(clickMatch, 160);
+    return true;
   };
 
   window.__dsTvPlayerAction = (action, value, source) => {
