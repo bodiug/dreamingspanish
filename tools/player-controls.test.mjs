@@ -78,12 +78,34 @@ test('idle timeout hides controls even while a player button remains selected', 
     setTimeout: (callback) => { timeout = callback; }, clearTimeout() {},
     setInterval() {}, clearInterval() {},
   });
-  vm.runInContext(section('  window.__dsTvRevealPlayerControls =', '  window.__dsTvEnterFullscreen ='), context);
+  vm.runInContext(section('  window.__dsTvRevealPlayerControls =', '  window.__dsTvEnterTvFullscreen ='), context);
   context.window.__dsTvRevealPlayerControls(null);
   assert(classes.has('__ds-tv-reveal'));
   timeout();
   assert.equal(classes.has('__ds-tv-reveal'), false);
   assert.equal(classes.has('__ds-tv-selection-active'), false);
+});
+
+test('automatic fullscreen rejects a different video while manual fullscreen still works', () => {
+  const classes = new Set();
+  const host = { classList: { add() {} } };
+  const player = { closest: () => host };
+  const context = vm.createContext({
+    location: { href: 'https://app.dreaming.com/spanish/watch?id=current' },
+    window: { scrollTo() {}, __dsTvRevealPlayerControls() {} },
+    document: {
+      querySelector: () => player,
+      documentElement: { classList: { add: (name) => classes.add(name) } },
+    },
+  });
+  vm.runInContext(section('  window.__dsTvEnterTvFullscreen =', '  window.__dsTvExitTvFullscreen ='), context);
+  assert.equal(context.window.__dsTvEnterTvFullscreen('https://app.dreaming.com/spanish/watch?id=previous'), false);
+  assert.equal(classes.size, 0);
+  assert.equal(context.window.__dsTvEnterTvFullscreen('https://app.dreaming.com/spanish/watch?id=current#player'), true);
+  assert(classes.has('__ds-tv-fullscreen'));
+  classes.clear();
+  assert.equal(context.window.__dsTvEnterTvFullscreen(), true);
+  assert(classes.has('__ds-tv-fullscreen'));
 });
 
 function qualityFixture() {

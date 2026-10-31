@@ -129,31 +129,11 @@
     }, 2200);
   };
 
-  window.__dsTvEnterFullscreen = () => {
-    if (!location.href.includes('/watch')) return false;
-    const player = (document.querySelector('.ds-shaka-player,.ds-youtube-player,video')?.closest('.embed-responsive')) || document.querySelector('.embed-responsive') || document.querySelector('.ds-video-section__embed');
-    if (!player) return false;
-    document.documentElement.classList.add('__ds-tv-fullscreen');
-    window.scrollTo(0, 0);
-    window.__dsTvRevealPlayerControls && window.__dsTvRevealPlayerControls(player);
-    return true;
-  };
-
   window.__dsTvEnterTvFullscreen = function (expectedPage) {
     if (expectedPage && location.href.split('#')[0] !== expectedPage.split('#')[0]) return false;
     if (!location.href.includes('/watch')) return false;
     const player = (document.querySelector('.ds-shaka-player,.ds-youtube-player,video')?.closest('.embed-responsive')) || document.querySelector('.embed-responsive') || document.querySelector('.ds-video-section__embed');
     if (!player) return false;
-    let fs = document.getElementById('ds-tv-fullscreen-fallback-style');
-    if (!fs) { fs = document.createElement('style'); fs.id = 'ds-tv-fullscreen-fallback-style'; document.head.appendChild(fs); }
-    fs.textContent = 'html.__ds-tv-fullscreen,html.__ds-tv-fullscreen body{overflow:hidden!important;background:#000!important;}'
-      + 'html.__ds-tv-fullscreen .ds-top-navbar,html.__ds-tv-fullscreen .ds-sidebar-area,html.__ds-tv-fullscreen .ds-video-section__information,html.__ds-tv-fullscreen .ds-playlist-section{display:none!important;}'
-      + '.ds-watch-page .ds-youtube-player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;background:#000!important;}'
-      + '.ds-watch-page .embed-responsive.__ds-tv-has-player .ds-video-section__default{display:none!important;}'
-      + 'html.__ds-tv-fullscreen .ds-watch-page,html.__ds-tv-fullscreen .ds-watch-page__sections,html.__ds-tv-fullscreen .ds-video-section,html.__ds-tv-fullscreen .ds-video-section__card-video,html.__ds-tv-fullscreen .ds-video-section__embed,html.__ds-tv-fullscreen .embed-responsive,html.__ds-tv-fullscreen .ds-youtube-player{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;max-width:none!important;margin:0!important;padding:0!important;background:#000!important;z-index:2147483000!important;}'
-      + 'html.__ds-tv-fullscreen .ds-video-section__default,html.__ds-tv-fullscreen .ds-video-overlay{display:none!important;}'
-      + 'html.__ds-tv-fullscreen .ds-shaka-player,html.__ds-tv-fullscreen iframe,html.__ds-tv-fullscreen video{position:absolute!important;inset:0!important;width:100vw!important;height:100vh!important;max-width:none!important;object-fit:contain!important;background:#000!important;}'
-      + 'html.__ds-tv-fullscreen .shaka-controls-container{z-index:2147483001!important;}';
     document.documentElement.classList.add('__ds-tv-fullscreen');
     window.scrollTo(0, 0);
     if (window.__dsTvRevealPlayerControls) { window.__dsTvRevealPlayerControls(player); }
