@@ -1,4 +1,9 @@
 window.__dsTvApplyAutoplay = function (enabled) {
+  try {
+    if (enabled) localStorage.removeItem('autoplay');
+    else if (localStorage.getItem('autoplay') !== 'false') localStorage.setItem('autoplay', 'false');
+  } catch (e) {}
+  let control = null;
   const text = (el) => (el.textContent || '').replace(/\s+/g, ' ').trim();
   const checked = (el) => {
     if (el.matches('input[type="checkbox"]')) return el.checked;
@@ -15,11 +20,8 @@ window.__dsTvApplyAutoplay = function (enabled) {
     return document.querySelector('[role="switch"][aria-label="Autoplay"],input[type="checkbox"][aria-label="Autoplay"]');
   };
   const apply = () => {
-    try {
-      if (enabled) localStorage.removeItem('autoplay');
-      else if (localStorage.getItem('autoplay') !== 'false') localStorage.setItem('autoplay', 'false');
-    } catch (e) {}
-    const control = findControl();
+    if (!location.pathname.includes('/watch')) return;
+    if (!control || !document.contains(control)) control = findControl();
     // A real click updates both React state and the website's saved preference.
     if (control && !control.disabled && checked(control) !== null && checked(control) !== enabled) control.click();
   };

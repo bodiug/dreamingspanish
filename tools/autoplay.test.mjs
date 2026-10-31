@@ -9,21 +9,31 @@ function fixture() {
   const storage = new Map();
   const intervals = new Map();
   const labels = [];
+  const controls = new Set();
+  let scans = 0;
+  let writes = 0;
   let nextId = 0;
+  const location = { pathname: '/spanish/watch' };
   const context = vm.createContext({
-    window: {},
+    window: {}, location,
     localStorage: {
       getItem: (key) => storage.get(key) ?? null,
-      setItem: (key, value) => storage.set(key, value),
-      removeItem: (key) => storage.delete(key),
+      setItem: (key, value) => { writes++; storage.set(key, value); },
+      removeItem: (key) => { writes++; storage.delete(key); },
     },
-    document: { querySelectorAll: () => labels, querySelector: () => null },
+    document: {
+      querySelectorAll: () => { scans++; return labels; }, querySelector: () => null,
+      contains: (control) => controls.has(control),
+    },
     setInterval: (callback) => { intervals.set(++nextId, callback); return nextId; },
     clearInterval: (id) => intervals.delete(id),
   });
   vm.runInContext(script, context);
   return {
-    storage, intervals,
+    storage, intervals, location,
+    get scans() { return scans; },
+    get writes() { return writes; },
+    unmount() { labels.length = 0; controls.clear(); },
     apply: (enabled) => context.window.__dsTvApplyAutoplay(enabled),
     tick: () => [...intervals.values()].forEach((callback) => callback()),
     mount(name, initial, checkbox = false) {
@@ -42,6 +52,7 @@ function fixture() {
         },
       };
       labels.push({ textContent: name, querySelector: () => control });
+      controls.add(control);
       return { get state() { return state; }, get clicks() { return clicks; } };
     },
   };
@@ -91,4 +102,33 @@ test('an already correct setting is preserved and checkbox changes use real clic
   f.apply(true);
   assert.equal(toggle.state, true);
   assert.equal(toggle.clicks, 1);
+});
+
+test('idle autoplay checks reuse the switch without scanning labels or writing storage', () => {
+  const f = fixture();
+  f.mount('Autoplay', false);
+  f.apply(false);
+  const scans = f.scans;
+  const writes = f.writes;
+  for (let i = 0; i < 20; i++) f.tick();
+  assert.equal(f.scans, scans);
+  assert.equal(f.writes, writes);
+  f.unmount();
+  const replacement = f.mount('Autoplay', true);
+  f.tick();
+  assert.equal(replacement.state, false);
+  assert.equal(f.scans, scans + 1);
+});
+
+test('browse pages do not scan for a nonexistent autoplay switch', () => {
+  const f = fixture();
+  f.location.pathname = '/spanish/browse';
+  f.apply(false);
+  for (let i = 0; i < 20; i++) f.tick();
+  assert.equal(f.scans, 0);
+  assert.equal(f.storage.get('autoplay'), 'false');
+  f.location.pathname = '/spanish/watch';
+  const toggle = f.mount('Autoplay', true);
+  f.tick();
+  assert.equal(toggle.state, false);
 });
