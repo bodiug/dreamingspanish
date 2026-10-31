@@ -189,15 +189,21 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    private void navigateBack() {
+    private void navigateHomeOrExit() {
         cancelAutoFullscreen();
         if (fullScreenView != null) {
             exitFullScreenVideo();
-        } else if (webView != null && webView.canGoBack()) {
-            webView.goBack();
+        } else if (webView != null && !isStartPage(webView.getUrl())) {
+            pageGeneration++;
+            webView.loadUrl(START_URL);
         } else {
             finish();
         }
+    }
+
+    private boolean isStartPage(String url) {
+        return url != null && START_URL.equals(
+                Uri.parse(url).buildUpon().fragment(null).build().toString());
     }
 
     private void handleBackAction() {
@@ -670,7 +676,7 @@ public class MainActivity extends Activity {
     private void closeOpenPopup() {
         evaluatePageScript(tvWebScripts.closeOpenPopupCall(), value -> {
             if (!"true".equals(value)) {
-                navigateBack();
+                navigateHomeOrExit();
             }
         });
     }

@@ -43,7 +43,7 @@ Default navigation mode is selection-based:
 
 - `DPAD left/right/up/down`: move the current selection.
 - `OK` / `Enter`: activate the selected item.
-- `Back`: close an open menu, go back, or exit fullscreen.
+- `Back`: close an open menu or player controls, exit fullscreen, or return to the start page. On the start page, close the app.
 - Long press `Back`: open the app settings menu.
 - `Channel up/down`, `Page up/down`, or media seek keys: scroll the page.
 - Media play/pause keys: toggle video playback when supported by the current player.
