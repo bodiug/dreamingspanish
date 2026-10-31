@@ -25,6 +25,7 @@ import android.webkit.WebViewClient;
 import android.webkit.WebStorage;
 import android.webkit.ValueCallback;
 import android.widget.FrameLayout;
+import android.window.OnBackInvokedDispatcher;
 import org.json.JSONException;
 import org.json.JSONTokener;
 
@@ -141,6 +142,10 @@ public class MainActivity extends Activity {
 
         configureWebView();
         hideSystemUi();
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBackAction);
+        }
 
         if (savedInstanceState == null) {
             webView.loadUrl(START_URL);
@@ -184,18 +189,31 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    @Override
-    public void onBackPressed() {
+    private void navigateBack() {
         cancelAutoFullscreen();
         if (fullScreenView != null) {
             exitFullScreenVideo();
         } else if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
-            super.onBackPressed();
+            finish();
         }
     }
 
+    private void handleBackAction() {
+        if (settingsOverlay.isOpen()) {
+            hideSettingsOverlay();
+        } else if (fullScreenView != null) {
+            exitFullScreenVideo();
+        } else if (tvFullscreenMode) {
+            closeOpenPopupOrHideControlsOrExitTvFullscreen();
+        } else {
+            closeOpenPopup();
+        }
+    }
+
+    // Remote keys provide long-press Back; system Back uses the dispatcher above.
+    @SuppressLint("GestureBackNavigation")
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int keyCode = event.getKeyCode();
@@ -203,13 +221,13 @@ public class MainActivity extends Activity {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (fullScreenView != null) {
                 if (event.getAction() == KeyEvent.ACTION_UP) {
-                    exitFullScreenVideo();
+                    handleBackAction();
                 }
                 return true;
             }
             if (tvFullscreenMode) {
                 if (event.getAction() == KeyEvent.ACTION_UP) {
-                    closeOpenPopupOrHideControlsOrExitTvFullscreen();
+                    handleBackAction();
                 }
                 return true;
             }
@@ -223,11 +241,7 @@ public class MainActivity extends Activity {
             if (event.getAction() == KeyEvent.ACTION_UP) {
                 handler.removeCallbacks(showSettingsRunnable);
                 if (!backLongPressTriggered) {
-                    if (settingsOverlay.isOpen()) {
-                        hideSettingsOverlay();
-                    } else {
-                        closeOpenPopup();
-                    }
+                    handleBackAction();
                 }
                 return true;
             }
@@ -656,7 +670,7 @@ public class MainActivity extends Activity {
     private void closeOpenPopup() {
         evaluatePageScript(tvWebScripts.closeOpenPopupCall(), value -> {
             if (!"true".equals(value)) {
-                onBackPressed();
+                navigateBack();
             }
         });
     }
