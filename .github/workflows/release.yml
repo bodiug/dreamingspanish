@@ -20,6 +20,13 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run behavior regression tests
+        run: node --test tools/*.test.mjs
+
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
@@ -29,42 +36,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
+      - name: Build debug APK and run Android Lint
+        run: ./gradlew assembleDebug lintDebug
 
       - name: Generate release notes
         run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            RANGE="$GITHUB_REF_NAME"
-          else
-            RANGE="$PREV_TAG..$GITHUB_REF_NAME"
+          awk -v version="$GITHUB_REF_NAME" '
+            $0 == "## " version { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "Missing changelog entry for $GITHUB_REF_NAME" >&2
+            exit 1
           fi
-          {
-            echo "## $GITHUB_REF_NAME"
-            echo ""
-            git log "$RANGE" --no-merges --pretty=format:"- %s (%h)"
-          } > release-notes.md
-          cat release-notes.md
-
-      - name: Update CHANGELOG.md
-        run: |
-          {
-            head -n 1 CHANGELOG.md
-            echo ""
-            cat release-notes.md
-            echo ""
-            tail -n +2 CHANGELOG.md
-          } > CHANGELOG.new.md
-          mv CHANGELOG.new.md CHANGELOG.md
-
-      - name: Commit changelog back to master
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "Update changelog for $GITHUB_REF_NAME" || echo "Nothing to commit"
-          git push origin HEAD:master
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

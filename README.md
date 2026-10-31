@@ -138,9 +138,10 @@ Every push and pull request runs `.github/workflows/ci.yml`, which runs the
 behavior regression tests, builds the debug APK, and runs Android Lint.
 
 Pushing a version tag (`vX.Y.Z`) runs `.github/workflows/release.yml`, which
-builds the debug APK, appends the commits since the previous tag to
-[`CHANGELOG.md`](CHANGELOG.md), and publishes a GitHub Release with that APK
-attached:
+runs the tests and Android Lint, builds the debug APK, and publishes a GitHub
+Release with that APK attached. Before tagging, update the app version and add
+a matching section to [`CHANGELOG.md`](CHANGELOG.md); the workflow uses that
+section as the release notes:
 
 ```sh
 git tag v1.0.0
