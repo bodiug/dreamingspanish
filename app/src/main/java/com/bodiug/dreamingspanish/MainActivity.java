@@ -108,6 +108,13 @@ public class MainActivity extends Activity {
             hideSystemUi();
             showCursorTemporarily();
         }
+
+        @Override
+        public void onExitRequested() {
+            cancelAutoFullscreen();
+            setVideoPlayback(false);
+            finishAndRemoveTask();
+        }
     };
 
     @SuppressLint("SetJavaScriptEnabled")

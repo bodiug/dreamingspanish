@@ -2,11 +2,13 @@ package com.bodiug.dreamingspanish;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -25,6 +27,8 @@ class SettingsOverlay {
         void onResetRequested();
 
         void onClosed();
+
+        void onExitRequested();
     }
 
     private static final int NAVIGATION_INDEX = 0;
@@ -32,6 +36,7 @@ class SettingsOverlay {
     private static final int AUTO_FULLSCREEN_INDEX = 2;
     private static final int REFRESH_INDEX = 3;
     private static final int RESET_INDEX = 4;
+    private static final int EXIT_INDEX = 6;
 
     private final Context context;
     private final FrameLayout root;
@@ -89,16 +94,20 @@ class SettingsOverlay {
         addItem(panel, "Refresh page");
         addItem(panel, "Reset session");
         addItem(panel, "Close");
+        addItem(panel, "Exit");
         updateSelection();
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 dpToPx(420),
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 Gravity.CENTER);
+        params.setMargins(dpToPx(24), dpToPx(24), dpToPx(24), dpToPx(24));
         root.addView(overlay, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        overlay.addView(panel, params);
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(panel);
+        overlay.addView(scroll, params);
         overlay.requestFocus();
     }
 
@@ -165,6 +174,8 @@ class SettingsOverlay {
         }
         selectedIndex = Math.max(0, Math.min(items.size() - 1, selectedIndex + direction));
         updateSelection();
+        TextView selected = items.get(selectedIndex);
+        selected.requestRectangleOnScreen(new Rect(0, 0, selected.getWidth(), selected.getHeight()), true);
     }
 
     private void updateSelection() {
@@ -198,6 +209,9 @@ class SettingsOverlay {
         } else if (selectedIndex == RESET_INDEX) {
             listener.onResetRequested();
             hide();
+        } else if (selectedIndex == EXIT_INDEX) {
+            hide();
+            listener.onExitRequested();
         } else {
             hide();
         }
