@@ -53,6 +53,8 @@ test('both navigation modes return the native fullscreen marker', () => {
 
 test('video activation includes its destination for scoped automatic fullscreen', () => {
   const f = actionFixture(undefined);
+  f.target.matches = () => true;
+  f.target.querySelector = () => f.target;
   f.target.closest = (selector) => selector.startsWith('.ds-browse-videos__video') ? f.target : null;
   f.target.href = 'https://app.dreaming.com/spanish/watch?id=next';
   const result = f.window.__dsTvPointerAction(50, 50, 1280, 720, 'click');

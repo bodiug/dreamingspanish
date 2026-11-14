@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Restore remote navigation from the sidebar to video cards after the website moved playback links into nested card titles.
+- Select the complete video card and activate its playback link instead of nearby options buttons, while retaining support for the previous card layout.
+
 ## v1.0.2
 
 ### Added

@@ -17,6 +17,7 @@ test('grid navigation measures each element once per key and refreshes between k
         return { left, top, width: 200, height: 200, right: left + 200, bottom: top + 200 };
       },
       matches: () => true, closest: () => null, contains: () => false,
+      querySelector: () => ({ href: 'https://app.dreaming.com/spanish/watch?id=' + index }),
       classList: { add: (value) => classes.add(value), remove: (value) => classes.delete(value) },
       focus() {},
     };
@@ -27,10 +28,11 @@ test('grid navigation measures each element once per key and refreshes between k
     document: {
       getElementById: () => ({}), querySelector: () => null,
       body: { querySelectorAll: () => [] }, activeElement: null,
-      querySelectorAll: (selector) => selector === '.ds-browse-videos__video > a[href]' ? elements : [],
+      querySelectorAll: (selector) => selector.includes('[data-testid="watch-video-card"]') ? elements : [],
       contains: (el) => elements.includes(el), elementFromPoint: () => null,
     },
   });
+  vm.runInContext(core.slice(core.indexOf('  window.__dsTvBrowseCards ='), core.indexOf('  window.__dsTvElementAction =')), context);
   vm.runInContext(core.slice(core.indexOf('  window.__dsTvSpatialNavigate ='), core.lastIndexOf('\n})();')), context);
   for (const [direction, index] of [['first', 0], ['right', 1], ['down', 5], ['up', 1]]) {
     for (const el of elements) { el.reads = 0; el.styles = 0; }

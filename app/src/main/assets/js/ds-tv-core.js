@@ -231,12 +231,27 @@
     return window.__dsTvElementAction(base, action);
   };
 
+  window.__dsTvBrowseCards = {
+    selector: '.ds-browse-videos__video,.ds-browse-searched-videos__video,[data-testid="watch-video-card"]',
+    link(card) {
+      if (!card || !card.matches?.(this.selector)) return null;
+      return card.querySelector('a[data-testid="video-card-title"][href],a[href*="/watch"]')
+        || card.querySelector('a[href]');
+    },
+    all() {
+      return [...new Set(document.querySelectorAll(this.selector))].filter((card) => this.link(card));
+    },
+  };
+
   window.__dsTvElementAction = function (base, action) {
     if (!base) return '';
     const isPopupItem = base.closest && base.closest('.dropdown-menu.show,.ds-form-dropdown__menu.show,[role="listbox"],[role="menu"],[role="dialog"],.ds-select-menu,.ds-popover,[class*="popover"],.ds-tv-player-quality-menu.show');
     const commentsCard = base.closest && base.closest('.ds-video-section__card-comments');
-    const target = (commentsCard || isPopupItem) ? base : (window.__dsTvClickTarget ? window.__dsTvClickTarget(base) : base);
-    const videoCard = !!(target.closest && target.closest('.ds-browse-videos__video > a[href],.ds-browse-videos__video'));
+    const card = base.closest && base.closest(window.__dsTvBrowseCards.selector);
+    const cardLink = window.__dsTvBrowseCards.link(card);
+    const nestedControl = base !== card && base.closest?.('button,[role="button"],input,select,textarea');
+    const target = (commentsCard || isPopupItem) ? base : (cardLink && !nestedControl ? cardLink : (window.__dsTvClickTarget ? window.__dsTvClickTarget(base) : base));
+    const videoCard = !!cardLink && target === cardLink;
     const playerAction = target.dataset && target.dataset.dsTvPlayerAction;
     const playerValue = target.dataset && target.dataset.dsTvPlayerValue;
     const label = ((target.getAttribute && target.getAttribute('aria-label')) || target.title || target.innerText || target.textContent || '').trim();
@@ -330,11 +345,11 @@
     const isVisible = (el) => { const r = rect(el); const cs = computedStyle(el); return r.width > 24 && r.height > 24 && r.bottom > 8 && r.right > 8 && r.top < innerHeight - 8 && r.left < innerWidth - 8 && cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0'; };
     const fullyVisible = (el) => { const r = rect(el); return r.top >= 155 && r.bottom <= innerHeight - 12 && r.left >= 0 && r.right <= innerWidth; };
     const center = (el) => { const r = rect(el); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; };
-    const clickable = (el) => { if (el.matches && el.matches(interactive)) return el; const inner = el.querySelector && el.querySelector(interactive); if (inner) return inner; return el.closest && el.closest(interactive) || el; };
+    const clickable = (el) => { const videoLink = window.__dsTvBrowseCards.link(el); if (videoLink) return videoLink; if (el.matches && el.matches(interactive)) return el; const inner = el.querySelector && el.querySelector(interactive); if (inner) return inner; return el.closest && el.closest(interactive) || el; };
     window.__dsTvClickTarget = clickable;
     const menuRoot = document.querySelector('.ds-sidebar-area') || document.querySelector('nav,aside,[role="navigation"]') || document.body;
     const blockedByMenu = (el) => { const p = center(el); const top = document.elementFromPoint(p.x, p.y); return top && top.closest && top.closest('nav,aside,[role="navigation"],header') && !el.contains(top); };
-    const allVideos = [...document.querySelectorAll('.ds-browse-videos__video > a[href]')];
+    const allVideos = window.__dsTvBrowseCards.all();
     const videoItems = allVideos.filter((el) => isVisible(el) && !blockedByMenu(el)).sort((a, b) => { const ar = rect(a); const br = rect(b); return ar.top - br.top || ar.left - br.left; });
     const watchRoot = document.querySelector('.ds-watch-page');
     const watchSelector = '[data-ds-tv-player-action],.ds-video-settings-menu__option';
